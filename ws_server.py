@@ -1,7 +1,6 @@
 import os
 import json
 
-from watson_developer_cloud import ToneAnalyzerV3
 import tornado.httpserver
 import tornado.ioloop
 import tornado.web
@@ -9,7 +8,12 @@ import tornado.websocket
 from tornado import gen
 import requests
 from logzero import logger
+from ibm_watson import ToneAnalyzerV3
+from ibm_watson.tone_analyzer_v3 import ToneInput
+from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
+from dotenv import load_dotenv
 
+load_dotenv()
 
 class DashboardHandler(tornado.websocket.WebSocketHandler):
 
@@ -46,27 +50,36 @@ class AudioHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         logger.warning('Audio socket open')
         self.transcriber = tornado.websocket.websocket_connect(
-            'wss://stream.watsonplatform.net/speech-to-text/api/v1/recognize?watson-token={token}&model={model}'.format(
+            'wss://api.{location}.speech-to-text.watson.cloud.ibm.com/instances/{instance}/v1/recognize?access_token={token}&model={model}'.format(
+                location='eu-gb',
+                instance='0206fb5c-5c9c-4f8b-b19b-107bbe902bf5',
                 token=self.transcriber_token(),
                 model='en-UK_NarrowbandModel'
             ),
             on_message_callback=self.on_transcriber_message
         )
 
+        authenticator = IAMAuthenticator(os.environ['TONE_ANALYZER_API_KEY'])
         self.tone_analyzer = ToneAnalyzerV3(
-            username=os.environ['TONE_ANALYZER_USERNAME'],
-            password=os.environ['TONE_ANALYZER_PASSWORD'],
-            version='2016-05-19'
+            version='2017-09-21',
+            authenticator=authenticator
         )
+        self.tone_analyzer.set_service_url(os.environ['TONE_ANALYZER_URL'])
 
     def transcriber_token(self):
-        resp = requests.get(
-            'https://stream.watsonplatform.net/authorization/api/v1/token',
-            auth=(os.environ['TRANSCRIBER_USERNAME'], os.environ['TRANSCRIBER_PASSWORD']),
-            params={'url': "https://stream.watsonplatform.net/speech-to-text/api"}
-        )
+        data = {
+            'grant_type': 'urn:ibm:params:oauth:grant-type:apikey',
+            'apikey': os.environ['TRANSCRIBER_API_KEY']
+        }
 
-        return resp.content.decode('utf-8')
+        resp = requests.post(
+            url='https://iam.cloud.ibm.com/identity/token',
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            data=data
+            )
+            
+        respJson = json.loads(resp.content.decode('utf-8'))
+        return respJson['access_token']
 
     @gen.coroutine
     def on_message(self, message):
@@ -96,8 +109,10 @@ class AudioHandler(tornado.websocket.WebSocketHandler):
             message = json.loads(message)
             if 'results' in message:
                 transcript = message['results'][0]['alternatives'][0]['transcript']
-                tone_results = self.tone_analyzer.tone(text=transcript)
-                tones = tone_results['document_tone']['tone_categories'][0]['tones']
+                tone_results = self.tone_analyzer.tone(
+                    tone_input=ToneInput(transcript),
+                    content_type="application/json").get_result()
+                tones = tone_results['document_tone']['tones']
 
                 DashboardHandler.send_updates(json.dumps(tones))
 
