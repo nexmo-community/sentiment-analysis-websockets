@@ -51,8 +51,8 @@ class AudioHandler(tornado.websocket.WebSocketHandler):
         logger.warning('Audio socket open')
         self.transcriber = tornado.websocket.websocket_connect(
             'wss://api.{location}.speech-to-text.watson.cloud.ibm.com/instances/{instance}/v1/recognize?access_token={token}&model={model}'.format(
-                location='eu-gb',
-                instance='0206fb5c-5c9c-4f8b-b19b-107bbe902bf5',
+                location=os.environ['TRANSCRIBER_SERVER_LOCATION'],
+                instance=os.environ['TRANSCRIBER_SERVER_INSTANCE_ID'],
                 token=self.transcriber_token(),
                 model='en-UK_NarrowbandModel'
             ),
