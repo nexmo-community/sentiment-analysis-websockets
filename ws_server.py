@@ -51,25 +51,25 @@ class AudioHandler(tornado.websocket.WebSocketHandler):
         logger.warning('Audio socket open')
         self.transcriber = tornado.websocket.websocket_connect(
             'wss://api.{location}.speech-to-text.watson.cloud.ibm.com/instances/{instance}/v1/recognize?access_token={token}&model={model}'.format(
-                location=os.environ['TRANSCRIBER_SERVER_LOCATION'],
-                instance=os.environ['TRANSCRIBER_SERVER_INSTANCE_ID'],
+                location=os.getenv('TRANSCRIBER_SERVER_LOCATION'),
+                instance=os.getenv('TRANSCRIBER_SERVER_INSTANCE_ID'),
                 token=self.transcriber_token(),
                 model='en-UK_NarrowbandModel'
             ),
             on_message_callback=self.on_transcriber_message
         )
 
-        authenticator = IAMAuthenticator(os.environ['TONE_ANALYZER_API_KEY'])
+        authenticator = IAMAuthenticator(os.getenv('TONE_ANALYZER_API_KEY'))
         self.tone_analyzer = ToneAnalyzerV3(
             version='2017-09-21',
             authenticator=authenticator
         )
-        self.tone_analyzer.set_service_url(os.environ['TONE_ANALYZER_URL'])
+        self.tone_analyzer.set_service_url(os.getenv('TONE_ANALYZER_URL'))
 
     def transcriber_token(self):
         data = {
             'grant_type': 'urn:ibm:params:oauth:grant-type:apikey',
-            'apikey': os.environ['TRANSCRIBER_API_KEY']
+            'apikey': os.getenv('TRANSCRIBER_API_KEY')
         }
 
         resp = requests.post(
@@ -124,6 +124,6 @@ if __name__ == "__main__":
         (r"/dashboard", DashboardHandler),
     ])
     http_server = tornado.httpserver.HTTPServer(application)
-    port = int(os.environ.get("PORT", 3000))
+    port = int(os.getenv("PORT", 3000))
     http_server.listen(port)
     tornado.ioloop.IOLoop.instance().start()

@@ -3,6 +3,7 @@ import uuid
 import hug
 import vonage
 from dotenv import load_dotenv
+from typing import List
 
 load_dotenv()
 
@@ -11,28 +12,28 @@ class CallObjectServer():
     def __init__(self):
         self.conversation_name = str(uuid.uuid4())
         self.vonage_client = vonage.Client(
-            application_id=os.environ['VONAGE_APPLICATION_ID'],
+            application_id=os.getenv('VONAGE_APPLICATION_ID'),
             private_key='private.key'
         )
 
-    def start(self):
+    def start(self) -> List[dict]:
         self.vonage_client.create_call({
-            'to': [{'type': 'phone', 'number': os.environ['TEST_HANDSET']}],
-            'from': {'type': 'phone', 'number': os.environ['VONAGE_FROM_NUMBER']},
-            'answer_url': ['https://' + os.environ['BASE_URL'] + '/moderator']
+            'to': [{'type': 'phone', 'number': os.getenv('TEST_HANDSET')}],
+            'from': {'type': 'phone', 'number': os.getenv('VONAGE_FROM_NUMBER')},
+            'answer_url': ['https://' + os.getenv('BASE_URL') + '/moderator']
         })
 
         self.ws_call = self.vonage_client.create_call({
             'to': [
                 {
                     "type": "websocket",
-                    "uri": "ws://" + os.environ['SOCKET_BASE_URL'] + "/audio",
+                    "uri": "ws://" + os.getenv('SOCKET_BASE_URL') + "/audio",
                     "content-type": "audio/l16;rate=16000",
                     "headers": {}
                 }
             ],
-            'from': {'type': 'phone', 'number': os.environ['VONAGE_FROM_NUMBER']},
-            'answer_url': ['https://' + os.environ['BASE_URL'] + '/attendee']
+            'from': {'type': 'phone', 'number': os.getenv('VONAGE_FROM_NUMBER')},
+            'answer_url': ['https://' + os.getenv('BASE_URL') + '/attendee']
         })
 
         return [
@@ -44,11 +45,11 @@ class CallObjectServer():
                 "action": "conversation",
                 "name": self.conversation_name,
                 "startOnEnter": "false",
-                "musicOnHoldUrl": ["https://" + os.environ['BASE_URL'] + "/hold.mp3"]
+                "musicOnHoldUrl": ["https://" + os.getenv('BASE_URL') + "/hold.mp3"]
             }
         ]
 
-    def moderator(self):
+    def moderator(self) -> List[dict]:
         return [
             {
                 "action": "conversation",
@@ -58,13 +59,13 @@ class CallObjectServer():
             }
         ]
 
-    def attendee(self):
+    def attendee(self) -> List[dict]:
         return [
             {
                 "action": "conversation",
                 "name": self.conversation_name,
                 "startOnEnter": "false",
-                "musicOnHoldUrl": ["https://" + os.environ['BASE_URL'] + "/hold.mp3"]
+                "musicOnHoldUrl": ["https://" + os.getenv('BASE_URL') + "/hold.mp3"]
             }
         ]
 
