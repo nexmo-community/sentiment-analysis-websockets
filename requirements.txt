@@ -21,7 +21,7 @@ python-mimeparse==1.6.0
 pytz==2021.1
 requests==2.25.1
 six==1.11.0
-tornado==6.1
+tornado==6.3.3
 urllib3==1.22
 vonage==2.5.5
 websocket-client==0.48.0
