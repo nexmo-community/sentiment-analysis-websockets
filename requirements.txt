@@ -19,7 +19,7 @@ python-dateutil==2.6.1
 python-dotenv==0.17.1
 python-mimeparse==1.6.0
 pytz==2021.1
-requests==2.25.1
+requests==2.31.0
 six==1.11.0
 tornado==6.1
 urllib3==1.22
